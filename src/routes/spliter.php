@@ -36,7 +36,7 @@ $app->post('/spliters', function ($request, $response) use ($container)  {
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
 
-    if($tipoUsuario != 'Admin')
+    if(strtolower($tipoUsuario) != 'admin')
     {
         return $this->response->withJson(array("error"=>array("message"=>"Sorry, This feature is only allowed for administrators.")), 403);
     }
@@ -49,18 +49,19 @@ $app->post('/spliters', function ($request, $response) use ($container)  {
     }
     else
     {
-        $spliter = array("quantidadePortas"=>null);
+        $spliter = array("quantidadePortas"=>null,"descricao"=>null);
         $spliter = (object) $spliter;
     }
 
-    if($spliter->quantidadePortas == null)
+    if($spliter->quantidadePortas == null || $spliter->descricao == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT quantidadePortas FROM spliter WHERE quantidadePortas = :quantidadePortas";
+    $sql = "SELECT quantidadePortas, descricao FROM spliter WHERE quantidadePortas = :quantidadePortas OR descricao = :descricao";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     $exists = $sth->fetchObject();
 
@@ -69,9 +70,10 @@ $app->post('/spliters', function ($request, $response) use ($container)  {
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
-    $sql = "INSERT INTO spliter (quantidadePortas) VALUES (:quantidadePortas)";
+    $sql = "INSERT INTO spliter (quantidadePortas, descricao) VALUES (:quantidadePortas, :descricao)";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     $spliter->idSpliter = $this->db->lastInsertId();
     return $this->response->withJson($spliter, 201);
@@ -83,7 +85,7 @@ $app->delete('/spliters/[{idSpliter}]', function ($request, $response, $args) us
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
 
-    if($tipoUsuario != 'Admin')
+    if(strtolower($tipoUsuario) != 'admin')
     {
         return $this->response->withJson(array("error"=>array("message"=>"Sorry, This feature is only allowed for administrators.")), 403);
     }
@@ -116,7 +118,7 @@ $app->put('/spliters/[{idSpliter}]', function ($request, $response, $args) use (
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
 
-    if($tipoUsuario != 'Admin')
+    if(strtolower($tipoUsuario) != 'admin')
     {
         return $this->response->withJson(array("error"=>array("message"=>"Sorry, This feature is only allowed for administrators.")), 403);
     }
@@ -132,19 +134,21 @@ $app->put('/spliters/[{idSpliter}]', function ($request, $response, $args) use (
     {
         $spliter = array(
             "idSpliter"=>$args['idSpliter'],
-            "quantidadePortas"=>null
+            "quantidadePortas"=>null,
+            "descricao"=>null
         );
         $spliter = (object) $spliter;
     }
 
-    if($spliter->quantidadePortas == null)
+    if($spliter->quantidadePortas == null || $spliter->descricao == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT quantidadePortas FROM spliter WHERE quantidadePortas = :quantidadePortas";
+    $sql = "SELECT quantidadePortas, descricao FROM spliter WHERE quantidadePortas = :quantidadePortas OR descricao = :descricao";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     $exists = $sth->fetchObject();
 
@@ -153,17 +157,18 @@ $app->put('/spliters/[{idSpliter}]', function ($request, $response, $args) use (
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
-    $sql = "UPDATE spliter SET quantidadePortas=:quantidadePortas WHERE idSpliter=:id";
+    $sql = "UPDATE spliter SET quantidadePortas=:quantidadePortas, descricao=:descricao WHERE idSpliter=:id";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("id", $spliter->idSpliter);
     $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     return $this->response->withJson($spliter, 200); 
 })->add(new Auth());
 
     // Search for spliter with given search teram in their name
 $app->get('/spliters/search/[{query}]', function ($request, $response, $args) use ($container)  {
- $sth = $this->db->prepare("SELECT * FROM spliter WHERE quantidadePortas LIKE :query ORDER BY quantidadePortas");
+ $sth = $this->db->prepare("SELECT * FROM spliter WHERE descricao LIKE :query ORDER BY quantidadePortas");
  $query = "%".$args['query']."%";
  $sth->bindParam("query", $query);
  $sth->execute();
