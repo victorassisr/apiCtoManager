@@ -7,6 +7,11 @@ $app->get('/spliters', function ($request, $response, $args) use ($container) {
     $sth = $container->db->prepare("SELECT * FROM spliter ORDER BY quantidadePortas");
     $sth->execute();
     $spliters = $sth->fetchAll();
+    if(!$spliters)
+    {
+        $error = array("error" => array("message"=>"Not Found."));
+        return $container->response->withJson($error, 404);
+    }
     return $container->response->withJson($spliters, 200);
 })->add(new Auth());
 
@@ -18,7 +23,7 @@ $app->get('/spliters/[{id}]', function ($request, $response, $args) use ($contai
     $spliter = $sth->fetchObject();
     if(!$spliter)
     {
-        $error = array("error" => array("message"=>"Not Found.", "status" => 404));
+        $error = array("error" => array("message"=>"Not Found."));
         return $container->response->withJson($error, 404);
     }
     return $container->response->withJson($spliter, 200);
