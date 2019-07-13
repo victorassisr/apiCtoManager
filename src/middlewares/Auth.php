@@ -10,12 +10,12 @@ class Auth{
                 $request = $request->withAttribute("jwt",array("jwt"=>JWTWrapper::decode($token)));
             } catch(Exception $ex) {
                 // nao foi possivel decodificar o token jwt
-                return $response->withJson(array("error"=>array("login"=>"false","message"=>"Login is required. Check if your token is válid.")), 403);
+                return $response->withJson(array("error"=>array("login"=>"false","message"=>"Login is required. Check if your token is válid.")), 401);
             }
  
         } else {
-            // nao foi possivel extrair token do header Authorization
-            return $response->withJson(array("error"=>array("login"=>"false","message"=>"Token not provided.")), 403);
+            // nao foi possivel extrair token do header
+            return $response->withJson(array("error"=>array("login"=>"false","message"=>"Token not provided.")), 401);
         }
 
 		$response = $next($request, $response);

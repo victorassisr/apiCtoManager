@@ -9,7 +9,7 @@ $app->get('/spliters', function ($request, $response, $args) use ($container) {
     $spliters = $sth->fetchAll();
     if(!$spliters)
     {
-        $error = array("error" => array("message"=>"Not Found."));
+        $error = array("error" => array("message"=>"No records have been submitted yet."));
         return $container->response->withJson($error, 404);
     }
     return $container->response->withJson($spliters, 200);
@@ -17,6 +17,7 @@ $app->get('/spliters', function ($request, $response, $args) use ($container) {
 
     // Retrieve spliter with id 
 $app->get('/spliters/[{id}]', function ($request, $response, $args) use ($container) {
+    
     $sth = $container->db->prepare("SELECT * FROM spliter WHERE idSpliter=:id");
     $sth->bindParam("id", $args['id']);
     $sth->execute();
@@ -57,16 +58,27 @@ $app->post('/spliters', function ($request, $response) use ($container)  {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
+    $sql = "SELECT quantidadePortas FROM spliter WHERE quantidadePortas = :quantidadePortas";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->execute();
+    $exists = $sth->fetchObject();
+
+    if($exists)
+    {
+        return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
+    }
+
     $sql = "INSERT INTO spliter (quantidadePortas) VALUES (:quantidadePortas)";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("quantidadePortas", $spliter['quantidadePortas']);
+    $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
     $sth->execute();
-    $spliter['id'] = $this->db->lastInsertId();
+    $spliter->idSpliter = $this->db->lastInsertId();
     return $this->response->withJson($spliter, 201);
 })->add(new Auth());
 
     // DELETE a spliter with given id
-$app->delete('/spliters/[{id}]', function ($request, $response, $args) use ($container)  {
+$app->delete('/spliters/[{idSpliter}]', function ($request, $response, $args) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
@@ -76,22 +88,8 @@ $app->delete('/spliters/[{id}]', function ($request, $response, $args) use ($con
         return $this->response->withJson(array("error"=>array("message"=>"Sorry, This feature is only allowed for administrators.")), 403);
     }
     
-    $spliter = $args['idSpliter'];
-
-    if($spliter != null)
-    {
-        $spliter = (object) $spliter;
-    }
-    else
-    {
-        $spliter = array("idSpliter"=>null);
-        $spliter = (object) $spliter;
-    }
-
-    if($spliter->idSpliter == null)
-    {
-        return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
-    }
+    $spliter = (object) $spliter;
+    $spliter->idSpliter = $args['idSpliter'];
 
     $sth = $this->db->prepare("SELECT idSpliter FROM spliter WHERE idSpliter=:id");
     $sth->bindParam("id", $spliter->idSpliter);
@@ -107,12 +105,12 @@ $app->delete('/spliters/[{id}]', function ($request, $response, $args) use ($con
     $sth = $this->db->prepare("DELETE FROM spliter WHERE idSpliter=:id");
     $sth->bindParam("id", $spliter->idSpliter);
     $sth->execute();
-    $success = array("success" => array("message"=>"Record deleted.", "status" => 200));
+    $success = array("success" => array("message"=>"Record deleted."));
     return $this->response->withJson($success, 200);
 })->add(new Auth());
 
     // Update spliter with given id
-$app->put('/spliters/[{id}]', function ($request, $response, $args) use ($container) {
+$app->put('/spliters/[{idSpliter}]', function ($request, $response, $args) use ($container) {
 
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
@@ -128,19 +126,31 @@ $app->put('/spliters/[{id}]', function ($request, $response, $args) use ($contai
     if($spliter != null)
     {
         $spliter = (object) $spliter;
+        $spliter->idSpliter = $args['idSpliter'];
     }
     else
     {
         $spliter = array(
-            "idSpliter"=>null,
+            "idSpliter"=>$args['idSpliter'],
             "quantidadePortas"=>null
         );
         $spliter = (object) $spliter;
     }
 
-    if($spliter->idSpliter == null || $spliter->quantidadePortas == null)
+    if($spliter->quantidadePortas == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
+    }
+
+    $sql = "SELECT quantidadePortas FROM spliter WHERE quantidadePortas = :quantidadePortas";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->execute();
+    $exists = $sth->fetchObject();
+
+    if($exists)
+    {
+        return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
     $sql = "UPDATE spliter SET quantidadePortas=:quantidadePortas WHERE idSpliter=:id";
@@ -148,7 +158,7 @@ $app->put('/spliters/[{id}]', function ($request, $response, $args) use ($contai
     $sth->bindParam("id", $spliter->idSpliter);
     $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
     $sth->execute();
-    return $this->response->withJson($spliter, 200);
+    return $this->response->withJson($spliter, 200); 
 })->add(new Auth());
 
     // Search for spliter with given search teram in their name
