@@ -63,7 +63,12 @@ return function (App $app) {
             }
     });
 
+    //Rotas Spliters
     require('routes/spliter.php');
+    //Rotas de tipo usuario
+    require('routes/tipousuario.php');
+    //rotas usuario
+    require('routes/usuario.php');
 
     $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function($req, $res) {
         //Se n houver rota lança 404
