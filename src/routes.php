@@ -21,9 +21,16 @@ return function (App $app) {
     	return $this->response->withJson($msg, 200);
     });
 
-    $app->post('/auth', function($request, $response, $args) use ($container){
+    $app->post('/auth', function($request, $response) use ($container){
 
-            $usuario = json_decode($request->getBody());
+            $usuario = $request->getParsedBody(); //Pega os dados como array;
+            if($usuario != null){
+                $usuario = (object) $usuario;
+            }else {
+                $usuario = array("usuario"=>null,"senha"=>null);
+                $usuario = (object) $usuario;
+            }
+
             if($usuario == null || $usuario->usuario == null || $usuario->senha == null){
                 return $response->withJson(array("error"=>array("login"=>"false", "message"=>"Invalid credentials.")), 403);
             }

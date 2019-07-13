@@ -7,10 +7,12 @@ return function (App $app) {
 
 	//Headers para habilitar o CORS
 	$app->add(function ($req, $res, $next) {
-		$response = $next($req, $res);
-		return $response
+
+		$res = $next($req, $res);
+		$res = $res
 		->withHeader('Access-Control-Allow-Origin', '*')
-		->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
-		->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+		->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, X-Access-Token')
+		->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')->withHeader('Content-Type','application/json');
+		return $res;
 	});
 };
