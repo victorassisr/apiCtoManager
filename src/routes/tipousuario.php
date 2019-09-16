@@ -1,9 +1,7 @@
 <?php
-
 	//tipos routes
-
     // get all tipos
-$app->get('/usuarios/tipos', function ($request, $response, $args) use ($container) {
+$app->get('/tipos', function ($request, $response, $args) use ($container) {
     $sth = $container->db->prepare("SELECT * FROM tipousuario ORDER BY idTipo");
     $sth->execute();
     $tipos = $sth->fetchAll();
@@ -16,7 +14,7 @@ $app->get('/usuarios/tipos', function ($request, $response, $args) use ($contain
 })->add(new Auth());
 
     // Retrieve tipo with id 
-$app->get('/usuarios/tipos/[{id}]', function ($request, $response, $args) use ($container) {
+$app->get('/tipo/[{id}]', function ($request, $response, $args) use ($container) {
     
     $sth = $container->db->prepare("SELECT * FROM tipousuario WHERE idTipo=:id");
     $sth->bindParam("id", $args['id']);
@@ -31,7 +29,7 @@ $app->get('/usuarios/tipos/[{id}]', function ($request, $response, $args) use ($
 })->add(new Auth());
 
     // Add a new tipo
-$app->post('/usuarios/tipos', function ($request, $response) use ($container)  {
+$app->post('/tipo', function ($request, $response) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
@@ -58,27 +56,31 @@ $app->post('/usuarios/tipos', function ($request, $response) use ($container)  {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
+    //Verifica se no banco existe um registro com a mesma descrição.
     $sql = "SELECT descricao FROM tipousuario WHERE descricao = :descricao";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("descricao", $tipo->descricao);
     $sth->execute();
     $exists = $sth->fetchObject();
 
+    //Se existir faça:
     if($exists)
     {
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
+    //Se não existir faça:
+
     $sql = "INSERT INTO tipousuario (descricao) VALUES (:descricao)";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("descricao", $tipo->descricao);
     $sth->execute();
-    $tipo->idTipo = $this->db->lastInsertId();
-    return $this->response->withJson($tipo, 201);
+    $tipo->idTipo = $this->db->lastInsertId(); //Pega o id da inserção
+    return $this->response->withJson($tipo, 201); //Retorna o obj ao cliente
 })->add(new Auth());
 
     // DELETE a tipo with given id
-$app->delete('/usuarios/tipos/[{idTipo}]', function ($request, $response, $args) use ($container)  {
+$app->delete('/tipo/[{idTipo}]', function ($request, $response, $args) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
@@ -91,6 +93,11 @@ $app->delete('/usuarios/tipos/[{idTipo}]', function ($request, $response, $args)
     $tipo = (object) array();
     $tipo->idTipo = $args['idTipo'];
 
+    if($tipo->idTipo == null || $tipo->idTipo == ""){
+        $error = array("error" => array("message"=>"Not Found."));
+        return $this->response->withJson($error, 404);
+    }
+
     $sth = $this->db->prepare("SELECT idTipo FROM tipousuario WHERE idTipo=:id");
     $sth->bindParam("id", $tipo->idTipo);
     $sth->execute();
@@ -102,7 +109,7 @@ $app->delete('/usuarios/tipos/[{idTipo}]', function ($request, $response, $args)
         return $this->response->withJson($error, 404);
     }
 
-    $sth = $this->db->prepare("SELECT idUser FROM user WHERE tipoUser=:id");
+    $sth = $this->db->prepare("SELECT idPessoaFuncionario FROM funcionario WHERE idTipo=:id");
     $sth->bindParam("id", $tipo->idTipo);
     $sth->execute();
     $ret = $sth->fetchObject();
@@ -120,7 +127,7 @@ $app->delete('/usuarios/tipos/[{idTipo}]', function ($request, $response, $args)
 })->add(new Auth());
 
     // Update tipo with given id
-$app->put('/usuarios/tipos/[{idTipo}]', function ($request, $response, $args) use ($container) {
+$app->put('/tipo/[{idTipo}]', function ($request, $response, $args) use ($container) {
 
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
@@ -183,7 +190,7 @@ $app->put('/usuarios/tipos/[{idTipo}]', function ($request, $response, $args) us
 })->add(new Auth());
 
     // Search for tipo with given search teram in their name
-$app->get('/usuarios/tipos/search/[{query}]', function ($request, $response, $args) use ($container)  {
+$app->get('/tipo/busca/[{query}]', function ($request, $response, $args) use ($container)  {
  $sth = $this->db->prepare("SELECT * FROM tipousuario WHERE descricao LIKE :query ORDER BY idTipo");
  $query = "%".$args['query']."%";
  $sth->bindParam("query", $query);
@@ -191,4 +198,5 @@ $app->get('/usuarios/tipos/search/[{query}]', function ($request, $response, $ar
  $tipos = $sth->fetchAll();
  return $this->response->withJson($tipos, 200);
 })->add(new Auth());
+
 ?>
