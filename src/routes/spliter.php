@@ -4,7 +4,7 @@
 
     // get all spliters
 $app->get('/spliters', function ($request, $response, $args) use ($container) {
-    $sth = $container->db->prepare("SELECT * FROM spliter ORDER BY quantidadePortas");
+    $sth = $container->db->prepare("SELECT * FROM spliter ORDER BY saidas");
     $sth->execute();
     $spliters = $sth->fetchAll();
     if(!$spliters)
@@ -16,7 +16,7 @@ $app->get('/spliters', function ($request, $response, $args) use ($container) {
 })->add(new Auth());
 
     // Retrieve spliter with id 
-$app->get('/spliters/[{id}]', function ($request, $response, $args) use ($container) {
+$app->get('/spliter/[{id}]', function ($request, $response, $args) use ($container) {
     
     $sth = $container->db->prepare("SELECT * FROM spliter WHERE idSpliter=:id");
     $sth->bindParam("id", $args['id']);
@@ -31,10 +31,10 @@ $app->get('/spliters/[{id}]', function ($request, $response, $args) use ($contai
 })->add(new Auth());
 
     // Add a new spliter
-$app->post('/spliters', function ($request, $response) use ($container)  {
+$app->post('/spliter', function ($request, $response) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
+    $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
 
     if(strtolower($tipoUsuario) != 'admin')
     {
@@ -43,24 +43,16 @@ $app->post('/spliters', function ($request, $response) use ($container)  {
     
     $spliter = $request->getParsedBody();
 
-    if($spliter != null)
-    {
-        $spliter = (object) $spliter;
-    }
-    else
-    {
-        $spliter = array("quantidadePortas"=>null,"descricao"=>null);
-        $spliter = (object) $spliter;
-    }
+    $spliter = (object) $spliter;
 
-    if($spliter->quantidadePortas == null || $spliter->descricao == null)
+    if($spliter->saidas == null || $spliter->descricao == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT quantidadePortas, descricao FROM spliter WHERE quantidadePortas = :quantidadePortas OR descricao = :descricao";
+    $sql = "SELECT saidas, descricao FROM spliter WHERE saidas = :saidas OR descricao = :descricao";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("saidas", $spliter->saidas);
     $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     $exists = $sth->fetchObject();
@@ -70,9 +62,9 @@ $app->post('/spliters', function ($request, $response) use ($container)  {
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
-    $sql = "INSERT INTO spliter (quantidadePortas, descricao) VALUES (:quantidadePortas, :descricao)";
+    $sql = "INSERT INTO spliter (saidas, descricao) VALUES (:saidas, :descricao)";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("saidas", $spliter->saidas);
     $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     $spliter->idSpliter = $this->db->lastInsertId();
@@ -80,10 +72,10 @@ $app->post('/spliters', function ($request, $response) use ($container)  {
 })->add(new Auth());
 
     // DELETE a spliter with given id
-$app->delete('/spliters/[{idSpliter}]', function ($request, $response, $args) use ($container)  {
+$app->delete('/spliter/[{idSpliter}]', function ($request, $response, $args) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
+    $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
 
     if(strtolower($tipoUsuario) != 'admin')
     {
@@ -103,20 +95,24 @@ $app->delete('/spliters/[{idSpliter}]', function ($request, $response, $args) us
         $error = array("error" => array("message"=>"Not Found.", "status" => 404));
         return $this->response->withJson($error, 404);
     }
-
-    $sth = $this->db->prepare("DELETE FROM spliter WHERE idSpliter=:id");
-    $sth->bindParam("id", $spliter->idSpliter);
-    $sth->execute();
-    $success = array("success" => array("message"=>"Record deleted."));
-    return $this->response->withJson($success, 200);
+    try{
+        $sth = $this->db->prepare("DELETE FROM spliter WHERE idSpliter=:id");
+        $sth->bindParam("id", $spliter->idSpliter);
+        $sth->execute();
+        $success = array("success" => array("message"=>"Record deleted."));
+        return $this->response->withJson($success, 200);
+    }catch(Exception $e){
+        return $this->response->withJson(array("error"=>array("message"=>"Record present in some caixa de atendimento. Delete the caixa de atendimento first so that you can later delete this record.")), 400);
+    }
+    
 })->add(new Auth());
 
     // Update spliter with given id
-$app->put('/spliters/[{idSpliter}]', function ($request, $response, $args) use ($container) {
+$app->put('/spliter/[{idSpliter}]', function ($request, $response, $args) use ($container) {
 
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
+    $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
 
     if(strtolower($tipoUsuario) != 'admin')
     {
@@ -125,29 +121,17 @@ $app->put('/spliters/[{idSpliter}]', function ($request, $response, $args) use (
     
     $spliter = $request->getParsedBody();
 
-    if($spliter != null)
-    {
-        $spliter = (object) $spliter;
-        $spliter->idSpliter = $args['idSpliter'];
-    }
-    else
-    {
-        $spliter = array(
-            "idSpliter"=>$args['idSpliter'],
-            "quantidadePortas"=>null,
-            "descricao"=>null
-        );
-        $spliter = (object) $spliter;
-    }
+    $spliter = (object) $spliter;
+    $spliter->idSpliter = $args["idSpliter"];
 
-    if($spliter->quantidadePortas == null || $spliter->descricao == null)
+    if($spliter->saidas == null || $spliter->descricao == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT quantidadePortas, descricao FROM spliter WHERE quantidadePortas = :quantidadePortas OR descricao = :descricao";
+    $sql = "SELECT saidas, descricao FROM spliter WHERE saidas = :saidas OR descricao = :descricao";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("saidas", $spliter->saidas);
     $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     $exists = $sth->fetchObject();
@@ -157,18 +141,18 @@ $app->put('/spliters/[{idSpliter}]', function ($request, $response, $args) use (
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
-    $sql = "UPDATE spliter SET quantidadePortas=:quantidadePortas, descricao=:descricao WHERE idSpliter=:id";
+    $sql = "UPDATE spliter SET saidas=:saidas, descricao=:descricao WHERE idSpliter=:id";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("id", $spliter->idSpliter);
-    $sth->bindParam("quantidadePortas", $spliter->quantidadePortas);
+    $sth->bindParam("saidas", $spliter->saidas);
     $sth->bindParam("descricao", $spliter->descricao);
     $sth->execute();
     return $this->response->withJson($spliter, 200); 
 })->add(new Auth());
 
     // Search for spliter with given search teram in their name
-$app->get('/spliters/search/[{query}]', function ($request, $response, $args) use ($container)  {
- $sth = $this->db->prepare("SELECT * FROM spliter WHERE descricao LIKE :query ORDER BY quantidadePortas");
+$app->get('/spliter/search/[{query}]', function ($request, $response, $args) use ($container)  {
+ $sth = $this->db->prepare("SELECT * FROM spliter WHERE descricao LIKE :query ORDER BY saidas");
  $query = "%".$args['query']."%";
  $sth->bindParam("query", $query);
  $sth->execute();

@@ -32,7 +32,7 @@ $app->get('/tipo/[{id}]', function ($request, $response, $args) use ($container)
 $app->post('/tipo', function ($request, $response) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
+    $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
 
     if(strtolower($tipoUsuario) != 'admin')
     {
@@ -41,15 +41,7 @@ $app->post('/tipo', function ($request, $response) use ($container)  {
     
     $tipo = $request->getParsedBody();
 
-    if($tipo != null)
-    {
-        $tipo = (object) $tipo;
-    }
-    else
-    {
-        $tipo = array("descricao"=>null);
-        $tipo = (object) $tipo;
-    }
+    $tipo = (object) $tipo;
 
     if($tipo->descricao == null)
     {
@@ -83,7 +75,7 @@ $app->post('/tipo', function ($request, $response) use ($container)  {
 $app->delete('/tipo/[{idTipo}]', function ($request, $response, $args) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
+    $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
 
     if(strtolower($tipoUsuario) != 'admin')
     {
@@ -92,11 +84,6 @@ $app->delete('/tipo/[{idTipo}]', function ($request, $response, $args) use ($con
     
     $tipo = (object) array();
     $tipo->idTipo = $args['idTipo'];
-
-    if($tipo->idTipo == null || $tipo->idTipo == ""){
-        $error = array("error" => array("message"=>"Not Found."));
-        return $this->response->withJson($error, 404);
-    }
 
     $sth = $this->db->prepare("SELECT idTipo FROM tipousuario WHERE idTipo=:id");
     $sth->bindParam("id", $tipo->idTipo);
@@ -131,7 +118,7 @@ $app->put('/tipo/[{idTipo}]', function ($request, $response, $args) use ($contai
 
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $tipoUsuario = $logado->tipoUser->descricao; //Tipo de usuário logado.
+    $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
 
     if(strtolower($tipoUsuario) != 'admin')
     {
@@ -140,19 +127,8 @@ $app->put('/tipo/[{idTipo}]', function ($request, $response, $args) use ($contai
     
     $tipo = $request->getParsedBody();
 
-    if($tipo != null)
-    {
-        $tipo = (object) $tipo;
-        $tipo->idTipo = $args['idTipo'];
-    }
-    else
-    {
-        $tipo = array(
-            "idTipo"=>$args['idTipo'],
-            "descricao"=>null
-        );
-        $tipo = (object) $tipo;
-    }
+    $tipo = (object) $tipo;
+    $tipo->idTipo = $args["idTipo"];
 
     if($tipo->descricao == null)
     {

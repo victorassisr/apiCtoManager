@@ -29,8 +29,9 @@ USE `cto`;
 --
 
 CREATE TABLE `bairro` (
-  `idBairro` int(11) NOT NULL,
-  `descricao` varchar(65) NOT NULL
+  `idBairro` int(11) NOT NULL auto_increment,
+  `descricao` varchar(65) NOT NULL,
+  primary key (`idBairro`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -40,13 +41,14 @@ CREATE TABLE `bairro` (
 --
 
 CREATE TABLE `caixaatendimento` (
-  `idCaixa` int(11) NOT NULL,
+  `idCaixa` int(11) NOT NULL auto_increment,
   `latitude` varchar(65) NOT NULL,
   `longitude` varchar(65) NOT NULL,
   `descricao` varchar(50) NOT NULL,
   `idSpliter` tinyint(4) NOT NULL,
   `idBairro` int(11) NOT NULL,
-  `portasUsadas` tinyint(4) NOT NULL
+  `portasUsadas` tinyint(4) NOT NULL,
+  primary key(`idCaixa`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -99,9 +101,10 @@ CREATE TABLE `instalacao` (
 --
 
 CREATE TABLE `pessoa` (
-  `IdPessoa` int(11) NOT NULL,
+  `IdPessoa` int(11) NOT NULL auto_increment,
   `nome` varchar(30) NOT NULL,
-  `sobrenome` varchar(100) NOT NULL
+  `sobrenome` varchar(100) NOT NULL,
+  primary key(`IdPessoa`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -111,9 +114,10 @@ CREATE TABLE `pessoa` (
 --
 
 CREATE TABLE `spliter` (
-  `idSpliter` tinyint(4) NOT NULL,
+  `idSpliter` tinyint(4) NOT NULL auto_increment,
   `saidas` smallint(6) NOT NULL,
-  `descricao` varchar(50) NOT NULL
+  `descricao` varchar(50) NOT NULL,
+  primary key(`idSpliter`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -123,8 +127,9 @@ CREATE TABLE `spliter` (
 --
 
 CREATE TABLE `tipousuario` (
-  `idTipo` tinyint(4) NOT NULL,
-  `descricao` varchar(30) NOT NULL
+  `idTipo` tinyint(4) NOT NULL auto_increment,
+  `descricao` varchar(30) NOT NULL,
+  primary key(`idTipo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
@@ -134,14 +139,12 @@ CREATE TABLE `tipousuario` (
 --
 -- Indexes for table `bairro`
 --
-ALTER TABLE `bairro`
-  ADD PRIMARY KEY (`idBairro`);
-
+-- ALTER TABLE `bairro`
+--  ADD PRIMARY KEY (`idBairro`);
 --
 -- Indexes for table `caixaatendimento`
 --
 ALTER TABLE `caixaatendimento`
-  ADD PRIMARY KEY (`idCaixa`),
   ADD KEY `bairro_caixaatendimento_fk` (`idBairro`),
   ADD KEY `spliter_caixaatendimento_fk` (`idSpliter`);
 
@@ -171,20 +174,20 @@ ALTER TABLE `instalacao`
 --
 -- Indexes for table `pessoa`
 --
-ALTER TABLE `pessoa`
-  ADD PRIMARY KEY (`IdPessoa`);
+-- ALTER TABLE `pessoa`
+--  ADD PRIMARY KEY (`IdPessoa`);
 
 --
 -- Indexes for table `spliter`
 --
-ALTER TABLE `spliter`
-  ADD PRIMARY KEY (`idSpliter`);
+-- ALTER TABLE `spliter`
+--  ADD PRIMARY KEY (`idSpliter`);
 
 --
 -- Indexes for table `tipousuario`
 --
-ALTER TABLE `tipousuario`
-  ADD PRIMARY KEY (`idTipo`);
+-- ALTER TABLE `tipousuario`
+--  ADD PRIMARY KEY (`idTipo`);
 
 --
 -- Constraints for dumped tables
