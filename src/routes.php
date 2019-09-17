@@ -74,6 +74,10 @@ return function (App $app) {
     require('routes/bairro.php');
     //rotas caixaAtendimento
     require('routes/caixaAtendimento.php');
+    //rotas cliente
+    require('routes/cliente.php');
+    //rotas instalacao
+    require('routes/instalacao.php');
 
     $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function($req, $res) {
         //Se n houver rota lança 404
