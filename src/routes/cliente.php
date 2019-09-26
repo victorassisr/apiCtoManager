@@ -2,135 +2,133 @@
 
     //clientes routes
 
-$app->get('/funcionarios', function ($request, $response, $args) use ($container) {
-    $sth = $container->db->prepare("SELECT p.idPessoa, p.nome, p.sobrenome, f.usuario, f.idcliente FROM pessoa as p inner join funcionario as f on p.idPessoa = f.idPessoaFuncionario");
+$app->get('/clientes', function ($request, $response, $args) use ($container) {
+    $sth = $container->db->prepare("SELECT p.idPessoa, p.nome, p.sobrenome, c.rua, c.numero, c.complemento, b.idBairro, b.descricao as bairro FROM pessoa AS p inner join cliente as c on c.idPessoaCliente = idPessoa inner join bairro as b on c.idBairro = b.idBairro");
     $sth->execute();
-    $usuarios = $sth->fetchAll();
-    if(!$usuarios)
+    $clientes = $sth->fetchAll();
+
+    $tamanho = count($clientes);
+
+    for($i=0; $i<$tamanho; $i++){
+        $endereco["rua"] = $clientes[$i]["rua"];
+        unset($clientes[$i]["rua"]);
+        $endereco["numero"] = $clientes[$i]["numero"];
+        unset($clientes[$i]["numero"]);
+        $endereco["complemento"] = $clientes[$i]["complemento"];
+        unset($clientes[$i]["complemento"]);
+        $endereco["bairro"] = $clientes[$i]["bairro"];
+        unset($clientes[$i]["bairro"]);
+        $endereco["idBairro"] = $clientes[$i]["idBairro"];
+        unset($clientes[$i]["idBairro"]);
+        $clientes[$i]["endereco"] = $endereco;
+    }
+
+
+    if(!$clientes)
     {
         $error = array("error" => array("message"=>"No records have been submitted yet."));
         return $container->response->withJson($error, 404);
     }
 
-    $tamanho = count($usuarios);
-
-
-    for($i=0; $i<$tamanho; $i++){
-        $sql = $container->db->prepare("SELECT descricao from clienteUsuario where idcliente = '".$usuarios[$i]["idcliente"]."'");
-        $sql->execute();
-        $temp = $sql->fetchAll();
-        $cliente["idcliente"] = $usuarios[$i]["idcliente"];
-        $cliente["descricao"] = $temp[0]["descricao"];
-        unset($usuarios[$i]["idcliente"]);
-        $usuarios[$i]["clienteUsuario"] = $cliente;
-    }
-
-    return $container->response->withJson($usuarios, 200);
+    return $container->response->withJson($clientes, 200);
 })->add(new Auth());
 
-    // Buscar funcionario pelo id
-$app->get('/funcionario/[{id}]', function ($request, $response, $args) use ($container) {
+    // Buscar cliente pelo id
+$app->get('/cliente/[{id}]', function ($request, $response, $args) use ($container) {
     
-    $sth = $container->db->prepare("SELECT p.idPessoa, p.nome, p.sobrenome, f.usuario, f.idcliente FROM pessoa as p inner join funcionario as f on p.idPessoa = f.idPessoaFuncionario WHERE f.idPessoaFuncionario=:id");
+    $sth = $container->db->prepare("SELECT p.idPessoa, p.nome, p.sobrenome, c.rua, c.numero, c.complemento, b.idBairro, b.descricao FROM pessoa AS p inner join cliente as c on c.idPessoaCliente = idPessoa inner join bairro as b on c.idBairro = b.idBairro WHERE p.idPessoa=:id");
     $sth->bindParam("id", $args['id']);
     $sth->execute();
-    $usuario = $sth->fetchAll();
-    if(!$usuario)
+    $cliente = $sth->fetchAll();
+
+    if(!$cliente)
     {
         $error = array("error" => array("message"=>"Not Found."));
         return $container->response->withJson($error, 404);
     }
 
-    $sql = $container->db->prepare("SELECT descricao from clienteUsuario where idcliente = '".$usuario[0]["idcliente"]."'");
-        $sql->execute();
-        $temp = $sql->fetchAll();
-        $cliente["idcliente"] = $usuario[0]["idcliente"];
-        $cliente["descricao"] = $temp[0]["descricao"];
-        unset($usuario[0]["idcliente"]);
-        $usuario[0]["clienteUsuario"] = $cliente;
+        $endereco["rua"] = $cliente[0]["rua"];
+        unset($cliente[0]["rua"]);
+        $endereco["numero"] = $cliente[0]["numero"];
+        unset($cliente[0]["numero"]);
+        $endereco["complemento"] = $cliente[0]["complemento"];
+        unset($cliente[0]["complemento"]);
+        $endereco["bairro"] = $cliente[0]["descricao"];
+        unset($cliente[0]["descricao"]);
+        $endereco["idBairro"] = $cliente[0]["idBairro"];
+        unset($cliente[0]["idBairro"]);
+        $cliente[0]["endereco"] = $endereco;
 
-    return $container->response->withJson($usuario, 200);
+    return $container->response->withJson($cliente, 200);
 })->add(new Auth());
 
     // Add a new cliente
-$app->post('/funcionario', function ($request, $response) use ($container)  {
+$app->post('/cliente', function ($request, $response) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $clienteUsuario = $logado->descricao; //cliente de usuário logado.
+    $usuario = $logado->descricao; //usuário logado.
 
-    if(strtolower($clienteUsuario) != 'admin')
+    if(strtolower($usuario) != 'admin')
     {
         return $this->response->withJson(array("error"=>array("message"=>"Sorry, This feature is only allowed for administrators.")), 403);
     }
     
-    $usuario = $request->getParsedBody();
+    $cliente = $request->getParsedBody();
 
-    $u = (object) $usuario;
+    $c = (object) $cliente;
 
-    if($u->nome == null || $u->sobrenome == null || $u->usuario == null || $u->senha == null || $u->clienteUsuario["idcliente"] == null)
+    if($c->nome == null || $c->sobrenome == null || $c->endereco["rua"] == null || $c->endereco["numero"] == null || $c->endereco["idBairro"] == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT idPessoaFuncionario FROM funcionario WHERE usuario = :usuario";
-    $sth = $this->db->prepare($sql);
-    $sth->bindParam("usuario", $u->usuario);
-    $sth->execute();
-    $exists = $sth->fetchObject();
-
-    if($exists)
-    {
-        return $this->response->withJson(array("error"=>array("message"=>"Name of user already exists.")), 400);
+    if(!isset($c->endereco["complemento"])){
+        $c->endereco["complemento"] = null;
     }
 
-    $sql = "SELECT * FROM clienteusuario WHERE idcliente = :idcliente";
+    $sql = "SELECT idBairro FROM bairro WHERE idBairro = :idBairro";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("idcliente", $u->clienteUsuario["idcliente"]);
+    $sth->bindParam("idBairro", $c->endereco["idBairro"]);
     $sth->execute();
     $exists = $sth->fetchObject();
 
     if(!$exists)
     {
-        return $this->response->withJson(array("error"=>array("message"=>"Specify a valid user type!")), 400);
+        return $this->response->withJson(array("error"=>array("message"=>"Specify a valid district!")), 400);
     }
 
     $sql = "INSERT into Pessoa(nome, sobrenome) values (:nome, :sobrenome)";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("nome", $u->nome);
-    $sth->bindParam("sobrenome", $u->sobrenome);
+    $sth->bindParam("nome", $c->nome);
+    $sth->bindParam("sobrenome", $c->sobrenome);
     $sth->execute();
+    $tempId = $this->db->lastInsertId();
 
-    $u->idPessoa = $this->db->lastInsertId();
+    $c->idPessoa = $tempId;
 
-    echo $u->idPessoa;
-
-    $sql = "INSERT INTO FUNCIONARIO(idPessoaFuncionario, usuario, senha, idcliente) VALUES (:idFuncionario, :usuario, :senha, :cliente)";
+    $sql = "INSERT INTO cliente(idPessoaCliente, rua, numero, complemento, idBairro) VALUES (:idCliente, :rua, :numero, :complemento, :idBairro)";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("idFuncionario", $u->idPessoa);
-    $sth->bindParam("usuario", $u->usuario);
-    $sth->bindParam("senha", sha1($u->senha));
-    $sth->bindParam("cliente", $u->clienteUsuario["idcliente"]);    
+    $sth->bindParam("idCliente", $c->idPessoa);
+    $sth->bindParam("rua", $c->endereco["rua"]);
+    $sth->bindParam("numero", $c->endereco["numero"]);
+    $sth->bindParam("complemento", $c->endereco["complemento"]);
+    $sth->bindParam("idBairro", $c->endereco["idBairro"]);   
     $sth->execute();
 
-    $sql = "Select descricao from clienteUsuario where idcliente = :id";
+    $sql = "Select descricao from bairro where idBairro = :id";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("id", $u->clienteUsuario["idcliente"]);
+    $sth->bindParam("id", $c->endereco["idBairro"]);
     $sth->execute();
-    $tp = $sth->fetchObject();
+    $nomeBairro = $sth->fetchObject();
 
-    $temp = $u;
-    $user->idPessoa = $temp->idPessoa;
-    $user->nome = $temp->nome;
-    $user->sobrenome = $temp->sobrenome;
-    $user->usuario = $temp->usuario;
-    $user->clienteUsuario = array("idcliente"=>$u->clienteUsuario["idcliente"], "descricao"=>$tp->descricao);
+    $c->endereco["bairro"] = $nomeBairro->descricao;
 
-    return $this->response->withJson($user, 201);
-    
+    return $this->response->withJson($c, 201);
+
 })->add(new Auth());
 
     // DELETE a cliente with given id
-$app->delete('/funcionario/[{idUser}]', function ($request, $response, $args) use ($container)  {
+$app->delete('/cliente/[{id}]', function ($request, $response, $args) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $clienteUsuario = $logado->descricao; //cliente de usuário logado.
@@ -140,11 +138,11 @@ $app->delete('/funcionario/[{idUser}]', function ($request, $response, $args) us
         return $this->response->withJson(array("error"=>array("message"=>"Sorry, This feature is only allowed for administrators.")), 403);
     }
     
-    $usuario = (object) $usuario;
-    $usuario->idUser = $args['idUser'];
+    $cliente = (object) $cliente;
+    $cliente->idPessoa = $args['id'];
 
     $sth = $this->db->prepare("SELECT idPessoa FROM pessoa WHERE idPessoa=:id");
-    $sth->bindParam("id", $usuario->idUser);
+    $sth->bindParam("id", $cliente->idPessoa);
     $sth->execute();
     $ret = $sth->fetchObject();
 
@@ -154,11 +152,11 @@ $app->delete('/funcionario/[{idUser}]', function ($request, $response, $args) us
         return $this->response->withJson($error, 404);
     }
     try{
-        $sth = $this->db->prepare("DELETE FROM funcionario WHERE idPessoaFuncionario=:id");
-        $sth->bindParam("id", $usuario->idUser);
+        $sth = $this->db->prepare("DELETE FROM cliente WHERE idPessoaCliente=:id");
+        $sth->bindParam("id", $cliente->idPessoa);
         $sth->execute();
         $sth = $this->db->prepare("DELETE FROM Pessoa WHERE idPessoa=:id");
-        $sth->bindParam("id", $usuario->idUser);
+        $sth->bindParam("id", $cliente->idPessoa);
         $sth->execute();
         $success = array("success" => array("message"=>"Record deleted."));
         return $this->response->withJson($success, 200);
@@ -170,81 +168,73 @@ $app->delete('/funcionario/[{idUser}]', function ($request, $response, $args) us
 })->add(new Auth());
 
     // Update cliente with given id
-$app->put('/usuarios/[{id}]', function ($request, $response, $args) use ($container) {
+$app->put('/cliente/[{id}]', function ($request, $response, $args) use ($container) {
 
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
-    $clienteUsuario = $logado->descricao; //cliente de usuário logado.
+    $usuario = $logado->descricao; //cliente de usuário logado.
 
-    if(strtolower($clienteUsuario) != 'admin')
+    if(strtolower($usuario) != 'admin')
     {
         return $this->response->withJson(array("error"=>array("message"=>"Sorry, This feature is only allowed for administrators.")), 403);
     }
     
-    $usuario = $request->getParsedBody();
+    $cliente = $request->getParsedBody();
 
-    $usuario = (object)$usuario;
-    $usuario->idPessoa = $args["id"];
+    $cliente = (object)$cliente;
+    $cliente->idPessoa = $args["id"];
 
-    if($usuario->nome == null || $usuario->sobrenome == null || $usuario->usuario == null || $usuario->clienteUsuario["idcliente"] == null)
+    if($cliente->nome == null || $cliente->sobrenome == null || $cliente->endereco["rua"] == null || $cliente->endereco["numero"] == null || $cliente->endereco["idBairro"] == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT idPessoaFuncionario FROM funcionario WHERE usuario = :usuario";
-    $sth = $this->db->prepare($sql);
-    $sth->bindParam("usuario", $usuario->usuario);
-    $sth->execute();
-    $exists = $sth->fetchObject();
-
-    if($exists)
-    {
-        return $this->response->withJson(array("error"=>array("message"=>"Name of user already exists.")), 400);
+    if(!isset($cliente->endereco["complemento"])){
+        $cliente->endereco["complemento"] = null;
     }
 
-    $sql = "SELECT idcliente FROM clienteusuario WHERE idcliente = :idcliente";
+    $sql = "SELECT idBairro FROM bairro WHERE idBairro = :idBairro";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("idcliente", $usuario->clienteUsuario["idcliente"]);
+    $sth->bindParam("idBairro", $cliente->endereco["idBairro"]);
     $sth->execute();
     $exists = $sth->fetchObject();
 
     if(!$exists)
     {
-        return $this->response->withJson(array("error"=>array("message"=>"Specify a valid user type!")), 400);
+        return $this->response->withJson(array("error"=>array("message"=>"Specify a valid district!")), 400);
     }
 
     $sql = "update pessoa set nome=:nome, sobrenome=:snome where idPessoa = :id";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("id", $usuario->idPesoa);
-    $sth->bindParam("nome", $usuario->nome);
-    $sth->bindParam("snome", $usuario->sobrenome);
+    $sth->bindParam("id", $cliente->idPessoa);
+    $sth->bindParam("nome", $cliente->nome);
+    $sth->bindParam("snome", $cliente->sobrenome);
 
     $sth->execute();
-    $sql = "UPDATE funcionario SET usuario=:usuario, idcliente=:clienteUsuario WHERE idPessoaFuncionario=:id";
+    $sql = "UPDATE cliente SET rua=:rua, numero=:numero, complemento=:complemento, idBairro=:idBairro WHERE idPessoacliente=:id";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("id", $usuario->idPessoa);
-    $sth->bindParam("usuario", $usuario->usuario);
-    $sth->bindParam("clienteUsuario", $usuario->clienteUsuario["idcliente"]);
+    $sth->bindParam("id", $cliente->idPessoa);
+    $sth->bindParam("rua", $cliente->endereco["rua"]);
+    $sth->bindParam("numero", $cliente->endereco["numero"]);
+    $sth->bindParam("complemento", $cliente->endereco["complemento"]);
+    $sth->bindParam("idBairro", $cliente->endereco["idBairro"]);
     $sth->execute();
 
-    $sql = "Select descricao from clienteusuario idcliente = :id";
+    $sql = "SELECT descricao from bairro where idbairro = :id";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("idcliente", $usuario->clienteUsuario["idcliente"]);
+    $sth->bindParam("id", $cliente->endereco["idBairro"]);
     $sth->execute();
     $desc = $sth->fetchAll();
 
-    $temp = $usuario;
-    $user->idPessoa = $temp->idPessoa;
-    $user->nome = $temp->nome;
-    $user->usuario = $temp->usuario;
-    $user->clienteUsuario = array("idcliente"=>$temp->clienteUsuario["idcliente"], "descricao"=>$desc[0]["descricao"]);
-    return $this->response->withJson($user, 200); 
+    $cliente->endereco["descricao"] = $desc["descricao"];
+    
+    return $this->response->withJson($cliente, 200); 
 
 
 })->add(new Auth());
 
     // Search for cliente with given search teram in their name
-$app->get('/funcionario/search/[{query}]', function ($request, $response, $args) use ($container)  {
+$app->get('/cliente/search/[{query}]', function ($request, $response, $args) use ($container)  {
  $sth = $this->db->prepare("SELECT idUser, nome, usuario, clienteUser FROM user WHERE nome LIKE :query OR usuario LIKE :query ORDER BY idUser");
  $query = "%".$args['query']."%";
  $sth->bindParam("query", $query);
