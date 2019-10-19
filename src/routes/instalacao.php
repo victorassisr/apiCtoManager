@@ -1,37 +1,53 @@
 <?php
 
-	//instalacaos routes
+	//instalacoes routes
 
-    // get all instalacaos
+    // get all instalacoes
 $app->get('/instalacoes', function ($request, $response, $args) use ($container) {
     $sth = $container->db->prepare("SELECT * FROM instalacao");
     $sth->execute();
-    $instalacaos = $sth->fetchAll();
-    if(!$instalacaos)
+    $instalacoes = $sth->fetchAll();
+    if(!$instalacoes)
     {
         $error = array("error" => array("message"=>"No records have been submitted yet."));
         return $container->response->withJson($error, 404);
     }
-    return $container->response->withJson($instalacaos, 200);
+    return $container->response->withJson($instalacoes, 200);
 })->add(new Auth());
 
-    // Retrieve instalacao with id 
-$app->get('/instalacao/[{id}]', function ($request, $response, $args) use ($container) {
+    // Retrieve instalacao by id of caixa.
+    $app->get('/instalacoes/caixa/[{id}]', function ($request, $response, $args) use ($container) {
     
-    $sth = $container->db->prepare("SELECT * FROM instalacao WHERE idinstalacao=:id");
-    $sth->bindParam("id", $args['id']);
-    $sth->execute();
-    $instalacao = $sth->fetchObject();
-    if(!$instalacao)
-    {
-        $error = array("error" => array("message"=>"Not Found."));
-        return $container->response->withJson($error, 404);
-    }
-    return $container->response->withJson($instalacao, 200);
-})->add(new Auth());
+        $sth = $container->db->prepare("SELECT * FROM instalacao WHERE idcaixa=:id");
+        $sth->bindParam("id", $args['id']);
+        $sth->execute();
+        $instalacao = $sth->fetchAll();
+        if(!$instalacao)
+        {
+            $error = array("error" => array("message"=>"Not Found."));
+            return $container->response->withJson($error, 404);
+        }
+        return $container->response->withJson($instalacao, 200);
+    })->add(new Auth());
+
+    // Retrieve instalacao by id of caixa.
+    $app->get('/instalacoes/data/[{data}]', function ($request, $response, $args) use ($container) {
+    
+        $sth = $container->db->prepare("SELECT * FROM instalacao WHERE dataInstalacao = :data");
+        $sth->bindParam("data", $args['data']);
+        $sth->execute();
+
+        $instalacao = $sth->fetchAll();
+        if(!$instalacao)
+        {
+            $error = array("error" => array("message"=>"Not Found."));
+            return $container->response->withJson($error, 404);
+        }
+        return $container->response->withJson($instalacao, 200);
+    })->add(new Auth());
 
     // Add a new instalacao
-$app->post('/instalacao', function ($request, $response) use ($container)  {
+$app->post('/instalacoes', function ($request, $response) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
@@ -45,32 +61,94 @@ $app->post('/instalacao', function ($request, $response) use ($container)  {
 
     $instalacao = (object) $instalacao;
 
-    if($instalacao->descricao == null)
+    if($instalacao->idCaixa == null || $instalacao->porta == null || $instalacao->dataInstalacao == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT descricao FROM instalacao WHERE descricao = :descricao";
+    //Verifica se a caixa existe.
+    $sql = "SELECT idCaixa FROM CaixaAtendimento WHERE idCaixa = :id";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("descricao", $instalacao->descricao);
+    $sth->bindParam("id", $instalacao->idCaixa);
+    $sth->execute();
+    $exists = $sth->fetchObject();
+
+    if(!$exists)
+    {
+        return $this->response->withJson(array("error"=>array("message"=>"Caixa is inválid.")), 400);
+    }
+
+    //Verifica se o cliente existe.
+    $sql = "SELECT idPessoaCliente FROM cliente WHERE idPessoaCliente = :id";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("id", $instalacao->idPessoaCliente);
+    $sth->execute();
+    $exists = $sth->fetchObject();
+
+    if(!$exists)
+    {
+        return $this->response->withJson(array("error"=>array("message"=>"Cliente is inválid.")), 400);
+    }
+
+    //Verifica se o funcionario existe.
+    $sql = "SELECT idPessoaFuncionario FROM funcionario WHERE idPessoaFuncionario = :id";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("id", $instalacao->idPessoaFuncionario);
+    $sth->execute();
+    $exists = $sth->fetchObject();
+
+    if(!$exists)
+    {
+        return $this->response->withJson(array("error"=>array("message"=>"Funcionario is inválid.")), 400);
+    }
+
+    //Verifica se a porta está livre
+    $sql = "select * from instalacao where porta = :porta AND idCaixa = :id AND dataLiberacaoPorta IS NULL";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("id", $instalacao->idCaixa);
+    $sth->bindParam("porta", $instalacao->porta);
     $sth->execute();
     $exists = $sth->fetchObject();
 
     if($exists)
     {
-        return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
+        return $this->response->withJson(array("error"=>array("message"=>"Record already exists.")), 400);
     }
 
-    $sql = "INSERT INTO instalacao (descricao) VALUES (:descricao)";
+    $sql = "insert into instalacao values(:porta,:dataInstalacao,:idCaixa,:dataLiberacaoPorta,:funcionario,:cliente);";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("descricao", $instalacao->descricao);
+    $sth->bindParam("porta", $instalacao->porta);
+    $sth->bindParam("dataInstalacao", $instalacao->dataInstalacao);
+    $sth->bindParam("idCaixa", $instalacao->idCaixa);
+    $sth->bindParam("dataLiberacaoPorta", $instalacao->dataLiberacaoPorta);
+    $sth->bindParam("funcionario", $instalacao->idPessoaFuncionario);
+    $sth->bindParam("cliente", $instalacao->idPessoaCliente);
     $sth->execute();
-    $instalacao->idinstalacao = $this->db->lastInsertId();
+    $instalacao->idInstalacao = $this->db->lastInsertId();
     return $this->response->withJson($instalacao, 201);
 })->add(new Auth());
 
+    // Retrieve instalacao with idCaixa/port/date
+    $app->get('/instalacoes/[{id}/{porta}/{data}]', function ($request, $response, $args) use ($container) {
+    
+
+        $sth = $container->db->prepare("SELECT * FROM instalacao WHERE idcaixa=:id AND dataInstalacao = :data AND porta = :porta");
+        $sth->bindParam("id", $args['id']);
+        $sth->bindParam("data", $args['data']);
+        $sth->bindParam("porta", $args['porta']);
+        $sth->execute();
+        $instalacao = $sth->fetchObject();
+        
+        if(!$instalacao)
+        {
+            $error = array("error" => array("message"=>"Not Found."));
+            return $container->response->withJson($error, 404);
+        }
+        return $container->response->withJson($instalacao, 200);
+    })->add(new Auth()); 
+
     // DELETE a instalacao with given id
-$app->delete('/instalacao/[{idinstalacao}]', function ($request, $response, $args) use ($container)  {
+$app->delete('/instalacao/[{id}/{porta}/{data}]', function ($request, $response, $args) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
@@ -81,10 +159,14 @@ $app->delete('/instalacao/[{idinstalacao}]', function ($request, $response, $arg
     }
     
     $instalacao = (object) $instalacao;
-    $instalacao->idinstalacao = $args['idinstalacao'];
+    $instalacao->idCaixa = $args['id'];
+    $instalacao->porta = $args['porta'];
+    $instalacao->dataInstalacao = $args['data'];
 
-    $sth = $this->db->prepare("SELECT idinstalacao FROM instalacao WHERE idinstalacao=:id");
-    $sth->bindParam("id", $instalacao->idinstalacao);
+    $sth = $this->db->prepare("SELECT idCaixa FROM instalacao WHERE idCaixa=:id AND porta = :porta AND dataInstalacao = :data");
+    $sth->bindParam("id", $instalacao->idCaixa);
+    $sth->bindParam("porta", $instalacao->porta);
+    $sth->bindParam("dataInstalacao", $instalacao->dataInstalacao);
     $sth->execute();
     $ret = $sth->fetchObject();
 
@@ -94,19 +176,21 @@ $app->delete('/instalacao/[{idinstalacao}]', function ($request, $response, $arg
         return $this->response->withJson($error, 404);
     }
     try{
-        $sth = $this->db->prepare("DELETE FROM instalacao WHERE idinstalacao=:id");
-        $sth->bindParam("id", $instalacao->idinstalacao);
+        $sth = $this->db->prepare("DELETE FROM instalacao WHERE idCaixa=:id AND porta = :porta AND dataInstalacao = :data");
+        $sth->bindParam("id", $instalacao->idCaixa);
+        $sth->bindParam("porta", $instalacao->porta);
+        $sth->bindParam("dataInstalacao", $instalacao->dataInstalacao);
         $sth->execute();
         $success = array("success" => array("message"=>"Record deleted."));
         return $this->response->withJson($success, 200);
     }catch(Exception $e){
-        return $this->response->withJson(array("error"=>array("message"=>"Record present in some caixa de atendimento or cliente. Delete the caixa de atendimento first, or cliente, so that you can later delete this record.")), 400);
+        return $this->response->withJson(array("error"=>array("message"=>"Error at saving record.")), 400);
     }
     
 })->add(new Auth());
 
     // Update instalacao with given id
-$app->put('/instalacao/[{idinstalacao}]', function ($request, $response, $args) use ($container) {
+$app->put('/instalacao/[{id}/{porta}/{data}]', function ($request, $response, $args) use ($container) {
 
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
@@ -120,28 +204,46 @@ $app->put('/instalacao/[{idinstalacao}]', function ($request, $response, $args) 
     $instalacao = $request->getParsedBody();
 
     $instalacao = (object) $instalacao;
-    $instalacao->idinstalacao = $args["idinstalacao"];
+    $instalacao->idCaixa = $args['id'];
+    $instalacao->porta = $args['porta'];
+    $instalacao->dataInstalacao = $args['data'];
 
-    if($instalacao->descricao == null)
+    if($instalacao->idPessoaFuncionario == null || $instalacao->idPessoaCliente == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
-
-    $sql = "SELECT descricao FROM instalacao WHERE descricao = :descricao";
+    //Verifica se existe o cliente
+    $sql = "SELECT idPessoaCliente FROM cliente WHERE idPessoaCliente = :cliente";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("descricao", $instalacao->descricao);
+    $sth->bindParam("cliente", $instalacao->idPessoaCliente);
     $sth->execute();
     $exists = $sth->fetchObject();
 
-    if($exists)
+    if(!$exists)
     {
-        return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
+        return $this->response->withJson(array("error"=>array("message"=>"Cliente is inválid.")), 400);
     }
 
-    $sql = "UPDATE instalacao SET descricao=:descricao WHERE idinstalacao=:id";
+    //Verifica se existe o funcionário
+    $sql = "SELECT idPessoaFuncionario FROM funcionario WHERE idPessoaFuncionario = :funcionario";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("id", $instalacao->idinstalacao);
-    $sth->bindParam("descricao", $instalacao->descricao);
+    $sth->bindParam("funcionario", $instalacao->idPessoaFuncionario);
+    $sth->execute();
+    $exists = $sth->fetchObject();
+
+    if(!$exists)
+    {
+        return $this->response->withJson(array("error"=>array("message"=>"Funcionário is inválid.")), 400);
+    }
+
+    $sql = "UPDATE instalacao SET idPessoaCliente=:c, idPessoaFuncionario = :f, dataLiberacaoPorta = :dlp WHERE idCaixa=:id AND porta = :porta AND dataInstalacao = :di";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("id", $instalacao->idCaixa);
+    $sth->bindParam("c", $instalacao->idPessoaCliente);
+    $sth->bindParam("f", $instalacao->idPessoaFuncionario);
+    $sth->bindParam("dlp", $instalacao->dataLiberacaoPorta);
+    $sth->bindParam("porta", $instalacao->porta);
+    $sth->bindParam("di", $instalacao->dataInstalacao);
     $sth->execute();
     return $this->response->withJson($instalacao, 200); 
 })->add(new Auth());
