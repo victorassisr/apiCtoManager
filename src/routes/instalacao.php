@@ -1,6 +1,6 @@
 <?php
 
-	//instalacoes routes
+    //instalacoes routes
 
     // get all instalacoes
 $app->get('/instalacoes', function ($request, $response, $args) use ($container) {
@@ -14,6 +14,28 @@ $app->get('/instalacoes', function ($request, $response, $args) use ($container)
     }
     return $container->response->withJson($instalacoes, 200);
 })->add(new Auth());
+
+$app->get('/instalacoes/periodo/[{dataInicial}/{dataFinal}]', function ($request, $response, $args) use ($container) {
+        
+        $sth = $container->db->prepare(
+            "SELECT * FROM Instalacao i 
+            inner join Cliente c on c.IdPessoaCliente = i.IdPessoaCliente 
+            inner join Funcionario f on f.IdPessoaFuncionario = i.IdPessoaFuncionario
+                inner join Pessoa p on p.IdPessoa = f.IdPessoaFuncionario
+            inner join Bairro b on b.idBairro = c.idBairro
+            WHERE i.dataInstalacao between :dataInicial and :dataFinal"
+        );
+        $sth->bindParam("dataInicial", $args['dataInicial']);
+        $sth->bindParam("dataFinal", $args['dataFinal']);
+        $sth->execute();
+        $instalacao = $sth->fetchAll();
+        if(!$instalacao)
+        {
+            $error = array("error" => array("message"=>"Not Found."));
+            return $container->response->withJson($error, 404);
+        }
+        return $container->response->withJson($instalacao, 200);
+    })->add(new Auth());
 
     // Retrieve instalacao by id of caixa.
     $app->get('/instalacoes/caixa/[{id}]', function ($request, $response, $args) use ($container) {
