@@ -32,7 +32,7 @@ return function (App $app) {
             }
 
             if($usuario == null || $usuario->usuario == null || $usuario->senha == null){
-                return $response->withJson(array("error"=>array("login"=>"false", "message"=>"Invalid credentials.")), 403);
+                return $response->withJson(array("error"=>array("login"=>"false", "message"=>"Invalid credentials usuario null.")), 403);
             }
             $sql = "SELECT p.idPessoa, p.nome, p.sobrenome, f.usuario, f.idTipo, tp.descricao FROM pessoa as p inner join funcionario as f on p.idPessoa = f.idPessoaFuncionario inner join tipousuario as tp on f.idTipo = tp.idTipo where f.usuario = :usuario AND senha = :senha";
             $conn = $container->db;
