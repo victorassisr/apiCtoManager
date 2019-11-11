@@ -15,6 +15,32 @@ $app->get('/instalacoes', function ($request, $response, $args) use ($container)
     return $container->response->withJson($instalacoes, 200);
 })->add(new Auth());
 
+//get all instalacoes joins
+$app->get('/instalacoes/all', function ($request, $response, $args) use ($container) {
+        
+        $sth = $container->db->prepare(
+            "SELECT dataInstalacao, i.IdPessoaCliente, i.IdPessoaFuncionario,
+            pes.nome as 'NomeCliente', pes.sobrenome as 'SobrenomeCliente',
+            p.nome as 'NomeFunc', p.sobrenome as 'SobrenomeFunc', 
+            c.rua, c.numero, c.complemento, b.descricao, Porta, idCaixa
+            FROM Instalacao i 
+            inner join Cliente c on c.IdPessoaCliente = i.IdPessoaCliente 
+            inner join Funcionario f on f.IdPessoaFuncionario = i.IdPessoaFuncionario
+            inner join Pessoa p on p.IdPessoa = f.IdPessoaFuncionario
+            inner join Pessoa pes on pes.IdPessoa = c.IdPessoaCliente
+            inner join Bairro b on b.idBairro = c.idBairro"
+        );
+        $sth->execute();
+        $instalacao = $sth->fetchAll();
+        if(!$instalacao)
+        {
+            $error = array("error" => array("message"=>"Not Found."));
+            return $container->response->withJson($error, 404);
+        }
+        return $container->response->withJson($instalacao, 200);
+    })->add(new Auth());
+
+// get instalacoes periodo
 $app->get('/instalacoes/periodo/[{dataInicial}/{dataFinal}]', function ($request, $response, $args) use ($container) {
         
         $sth = $container->db->prepare(
