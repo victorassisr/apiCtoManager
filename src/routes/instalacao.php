@@ -181,6 +181,36 @@ $app->post('/instalacoes', function ($request, $response) use ($container)  {
     return $this->response->withJson($instalacao, 201);
 })->add(new Auth());
 
+    // Retrieve instalacao with idCaixa/port/date (Cliente, Funcionario, Pessoa, Bairro)
+    $app->get('/instalacoes/all/[{id}/{porta}/{data}]', function ($request, $response, $args) use ($container) {
+    
+
+        $sth = $container->db->prepare("
+            SELECT dataInstalacao, i.IdPessoaCliente, i.IdPessoaFuncionario,
+            pes.nome as 'NomeCliente', pes.sobrenome as 'SobrenomeCliente',
+            p.nome as 'NomeFunc', p.sobrenome as 'SobrenomeFunc', 
+            c.rua, c.numero, c.complemento, b.descricao, Porta, idCaixa
+            FROM Instalacao i 
+            inner join Cliente c on c.IdPessoaCliente = i.IdPessoaCliente 
+            inner join Funcionario f on f.IdPessoaFuncionario = i.IdPessoaFuncionario
+            inner join Pessoa p on p.IdPessoa = f.IdPessoaFuncionario
+            inner join Pessoa pes on pes.IdPessoa = c.IdPessoaCliente
+            inner join Bairro b on b.idBairro = c.idBairro
+            WHERE idcaixa=:id AND dataInstalacao = :data AND porta = :porta");
+        $sth->bindParam("id", $args['id']);
+        $sth->bindParam("data", $args['data']);
+        $sth->bindParam("porta", $args['porta']);
+        $sth->execute();
+        $instalacao = $sth->fetchObject();
+        
+        if(!$instalacao)
+        {
+            $error = array("error" => array("message"=>"Not Found."));
+            return $container->response->withJson($error, 404);
+        }
+        return $container->response->withJson($instalacao, 200);
+    })->add(new Auth()); 
+
     // Retrieve instalacao with idCaixa/port/date
     $app->get('/instalacoes/[{id}/{porta}/{data}]', function ($request, $response, $args) use ($container) {
     
