@@ -186,14 +186,15 @@ $app->put('/usuarios/[{id}]', function ($request, $response, $args) use ($contai
     $usuario = (object)$usuario;
     $usuario->idPessoa = $args["id"];
 
-    if($usuario->nome == null || $usuario->sobrenome == null || $usuario->usuario == null || $usuario->tipoUsuario["idTipo"] == null)
+    if($usuario->nome == null || $usuario->sobrenome == null || $usuario->usuario == null || $usuario->tipoUsuario["idTipo"] == null || $usuario->senha == null)
     {
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT idPessoaFuncionario FROM funcionario WHERE usuario = :usuario";
+    $sql = "SELECT idPessoaFuncionario FROM funcionario WHERE usuario = :usuario AND idPessoaFuncionario <> :id";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("usuario", $usuario->usuario);
+    $sth->bindParam("id", $usuario->idPessoa);
     $sth->execute();
     $exists = $sth->fetchObject();
 
@@ -215,19 +216,20 @@ $app->put('/usuarios/[{id}]', function ($request, $response, $args) use ($contai
 
     $sql = "update pessoa set nome=:nome, sobrenome=:snome where idPessoa = :id";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("id", $usuario->idPesoa);
+    $sth->bindParam("id", $usuario->idPessoa);
     $sth->bindParam("nome", $usuario->nome);
     $sth->bindParam("snome", $usuario->sobrenome);
 
     $sth->execute();
-    $sql = "UPDATE funcionario SET usuario=:usuario, idTipo=:tipoUsuario WHERE idPessoaFuncionario=:id";
+    $sql = "UPDATE funcionario SET usuario=:usuario, idTipo=:tipoUsuario, senha = :senha WHERE idPessoaFuncionario=:id";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("id", $usuario->idPessoa);
     $sth->bindParam("usuario", $usuario->usuario);
+    $sth->bindParam("senha", sha1($usuario->senha));
     $sth->bindParam("tipoUsuario", $usuario->tipoUsuario["idTipo"]);
     $sth->execute();
 
-    $sql = "Select descricao from tipousuario idTipo = :id";
+    $sql = "Select descricao from tipousuario where idTipo = :idTipo";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("idTipo", $usuario->tipoUsuario["idTipo"]);
     $sth->execute();

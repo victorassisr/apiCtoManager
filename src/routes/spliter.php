@@ -129,15 +129,17 @@ $app->put('/spliter/[{idSpliter}]', function ($request, $response, $args) use ($
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT saidas, descricao FROM spliter WHERE saidas = :saidas OR descricao = :descricao";
+    $sql = "SELECT saidas, descricao FROM spliter WHERE (saidas = :saidas OR descricao = :descricao) AND idSpliter <> :idSpliter";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("saidas", $spliter->saidas);
     $sth->bindParam("descricao", $spliter->descricao);
+    $sth->bindParam("idSpliter", $spliter->idSpliter);
     $sth->execute();
     $exists = $sth->fetchObject();
 
     if($exists)
     {
+        //return $this->response->withJson($exists);
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 

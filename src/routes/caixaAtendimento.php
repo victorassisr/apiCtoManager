@@ -110,7 +110,7 @@ $app->post('/cto', function ($request, $response) use ($container)  {
     $sql = 'INSERT INTO caixaatendimento VALUES (:latitude, :longitude, :descricao, :idSpliter, :idBairro)';
     
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("latitute", $cto->latitude);
+    $sth->bindParam("latitude", $cto->latitude);
     $sth->bindParam("longitude", $cto->longitude);
     $sth->bindParam("descricao", $cto->descricao);
     $sth->bindParam("idSpliter", $cto->spliter["idSpliter"]);
@@ -209,7 +209,7 @@ $app->put('/cto/[{idcto}]', function ($request, $response, $args) use ($containe
     $sql = "update caixaatendimento set latitude = :latitude, longitude=:longitude, descricao=:descricao, idSpliter=:idSpliter, idBairro=:idBairro) where idCaixa = :id";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("id", $cto->idCaixa);
-    $sth->bindParam("latitute", $cto->latitude);
+    $sth->bindParam("latitude", $cto->latitude);
     $sth->bindParam("longitude", $cto->longitude);
     $sth->bindParam("descricao", $cto->descricao);
     $sth->bindParam("idSpliter", $cto->spliter["idSpliter"]);
