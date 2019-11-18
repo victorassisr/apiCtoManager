@@ -231,7 +231,7 @@ $app->post('/instalacoes', function ($request, $response) use ($container)  {
     })->add(new Auth()); 
 
     // DELETE a instalacao with given id
-$app->delete('/instalacao/[{id}/{porta}/{data}]', function ($request, $response, $args) use ($container)  {
+    $app->delete('/instalacao/[{id}/{porta}/{data}]', function ($request, $response, $args) use ($container)  {
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
@@ -249,7 +249,7 @@ $app->delete('/instalacao/[{id}/{porta}/{data}]', function ($request, $response,
     $sth = $this->db->prepare("SELECT idCaixa FROM instalacao WHERE idCaixa=:id AND porta = :porta AND dataInstalacao = :data");
     $sth->bindParam("id", $instalacao->idCaixa);
     $sth->bindParam("porta", $instalacao->porta);
-    $sth->bindParam("dataInstalacao", $instalacao->dataInstalacao);
+    $sth->bindParam("data", $instalacao->dataInstalacao);
     $sth->execute();
     $ret = $sth->fetchObject();
 
@@ -262,7 +262,7 @@ $app->delete('/instalacao/[{id}/{porta}/{data}]', function ($request, $response,
         $sth = $this->db->prepare("DELETE FROM instalacao WHERE idCaixa=:id AND porta = :porta AND dataInstalacao = :data");
         $sth->bindParam("id", $instalacao->idCaixa);
         $sth->bindParam("porta", $instalacao->porta);
-        $sth->bindParam("dataInstalacao", $instalacao->dataInstalacao);
+        $sth->bindParam("data", $instalacao->dataInstalacao);
         $sth->execute();
         $success = array("success" => array("message"=>"Record deleted."));
         return $this->response->withJson($success, 200);
