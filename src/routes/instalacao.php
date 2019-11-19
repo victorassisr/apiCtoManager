@@ -28,7 +28,8 @@ $app->get('/instalacoes/all', function ($request, $response, $args) use ($contai
             inner join Funcionario f on f.IdPessoaFuncionario = i.IdPessoaFuncionario
             inner join Pessoa p on p.IdPessoa = f.IdPessoaFuncionario
             inner join Pessoa pes on pes.IdPessoa = c.IdPessoaCliente
-            inner join Bairro b on b.idBairro = c.idBairro"
+            inner join Bairro b on b.idBairro = c.idBairro
+            order by dataInstalacao desc"
         );
         $sth->execute();
         $instalacao = $sth->fetchAll();
@@ -54,7 +55,8 @@ $app->get('/instalacoes/periodo/[{dataInicial}/{dataFinal}]', function ($request
             inner join Pessoa p on p.IdPessoa = f.IdPessoaFuncionario
             inner join Pessoa pes on pes.IdPessoa = c.IdPessoaCliente
             inner join Bairro b on b.idBairro = c.idBairro
-            WHERE i.dataInstalacao between :dataInicial and :dataFinal"
+            WHERE i.dataInstalacao between :dataInicial and :dataFinal
+            order by dataInstalacao"
         );
         $sth->bindParam("dataInicial", $args['dataInicial']);
         $sth->bindParam("dataFinal", $args['dataFinal']);
