@@ -40,7 +40,7 @@ $app->get('/ctos', function ($request, $response, $args) use ($container) {
     return $container->response->withJson($ctos, 200);
 })->add(new Auth());
 
-    // Retrieve cto with id 
+// Retrieve cto with id 
 $app->get('/cto/[{id}]', function ($request, $response, $args) use ($container) {
     
     $sth = $container->db->prepare("SELECT * FROM caixaatendimento WHERE idCaixa=:id");
@@ -57,7 +57,7 @@ $app->get('/cto/[{id}]', function ($request, $response, $args) use ($container) 
     $sql = $container->db->prepare("SELECT descricao from bairro where idBairro = '".$cto[0]["idBairro"]."'");
         $sql->execute();
         $temp = $sql->fetchAll();
-        $bairro["idBairro"] = $cto[0]["idTipo"];
+        $bairro["idBairro"] = $cto[0]["idBairro"];
         $bairro["descricao"] = $temp[0]["descricao"];
         unset($cto[0]["idBairro"]);
         $cto[0]["bairro"] = $bairro;
@@ -77,6 +77,8 @@ $app->get('/cto/[{id}]', function ($request, $response, $args) use ($container) 
 
     // Add a new cto
 $app->post('/cto', function ($request, $response) use ($container)  {
+    
+    
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
     $tipoUsuario = $logado->descricao; //Tipo de usuário logado.
@@ -107,14 +109,17 @@ $app->post('/cto', function ($request, $response) use ($container)  {
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
-    $sql = 'INSERT INTO caixaatendimento VALUES (:latitude, :longitude, :descricao, :idSpliter, :idBairro)';
+    $sql = 'INSERT INTO caixaatendimento VALUES (null, :latitude, :longitude, :descricao, :idSpliter, :idBairro, :portasUsadas)';
     
+    $init = '[0]';
+
     $sth = $this->db->prepare($sql);
     $sth->bindParam("latitude", $cto->latitude);
     $sth->bindParam("longitude", $cto->longitude);
     $sth->bindParam("descricao", $cto->descricao);
     $sth->bindParam("idSpliter", $cto->spliter["idSpliter"]);
     $sth->bindParam("idBairro", $cto->bairro["idBairro"]);
+    $sth->bindParam("portasUsadas", $init);
     $sth->execute();
     $cto->idCaixa = $this->db->lastInsertId();
     unset($cto->idBairro);
@@ -126,7 +131,7 @@ $app->post('/cto', function ($request, $response) use ($container)  {
     $temp = $sth->fetchAll();
     $cto->bairro["descricao"] = $temp[0]["descricao"];
 
-    $sql = 'Select descricao from splite where idSpliter = :id';
+    $sql = 'Select descricao from spliter where idSpliter = :id';
     $sth = $this->db->prepare($sql);
     $sth->bindParam("id", $cto->spliter["idSpliter"]);
     $sth->execute();
@@ -173,8 +178,11 @@ $app->delete('/cto/[{idcto}]', function ($request, $response, $args) use ($conta
     
 })->add(new Auth());
 
-    // Update cto with given id
+// Update cto with given id
 $app->put('/cto/[{idcto}]', function ($request, $response, $args) use ($container) {
+
+
+    $cto = $request->getParsedBody();
 
     $dadosJWT = $request->getAttribute('jwt');
     $logado = $dadosJWT['jwt']->data;
@@ -195,7 +203,7 @@ $app->put('/cto/[{idcto}]', function ($request, $response, $args) use ($containe
         return $response->withJson(array("error"=>array("message"=>"The request data is invalid.")), 400);
     }
 
-    $sql = "SELECT descricao FROM caixaatendimento WHERE descricao = :descricao";
+$sql = "SELECT descricao FROM caixaatendimento WHERE descricao = :descricao AND idcaixa <> ".$cto->idCaixa."";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("descricao", $cto->descricao);
     $sth->execute();
@@ -206,7 +214,7 @@ $app->put('/cto/[{idcto}]', function ($request, $response, $args) use ($containe
         return $this->response->withJson(array("error"=>array("message"=>"A registered record with the reported data already exists.")), 400);
     }
 
-    $sql = "update caixaatendimento set latitude = :latitude, longitude=:longitude, descricao=:descricao, idSpliter=:idSpliter, idBairro=:idBairro) where idCaixa = :id";
+    $sql = "update caixaatendimento set latitude = :latitude, longitude = :longitude, descricao = :descricao, idSpliter = :idSpliter, idBairro = :idBairro where idCaixa = :id";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("id", $cto->idCaixa);
     $sth->bindParam("latitude", $cto->latitude);
