@@ -111,7 +111,7 @@ $app->post('/cto', function ($request, $response) use ($container)  {
 
     $sql = 'INSERT INTO caixaatendimento VALUES (null, :latitude, :longitude, :descricao, :idSpliter, :idBairro, :portasUsadas)';
     
-    $init = '[0]';
+    $init = 0;
 
     $sth = $this->db->prepare($sql);
     $sth->bindParam("latitude", $cto->latitude);

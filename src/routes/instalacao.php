@@ -41,6 +41,38 @@ $app->get('/instalacoes/all', function ($request, $response, $args) use ($contai
         return $container->response->withJson($instalacao, 200);
     })->add(new Auth());
 
+    // get quant instalacoes por mes
+	$app->get('/instalacoes/month', function ($request, $response, $args) use ($container) {
+    $sth = $container->db->prepare("SELECT count(0) as Instalacoes, MONTH(dataInstalacao) as mes FROM Instalacao
+									WHERE YEAR(dataInstalacao) = 2019
+									group by mes");
+    $sth->execute();
+    $instalacoes = $sth->fetchAll();
+    if(!$instalacoes)
+    {
+        $error = array("error" => array("message"=>"No records have been submitted yet."));
+        return $container->response->withJson($error, 404);
+    }
+    return $container->response->withJson($instalacoes, 200);
+	})->add(new Auth());
+
+	// get quant instalacoes por semana
+	$app->get('/instalacoes/week', function ($request, $response, $args) use ($container) {
+    $sth = $container->db->prepare(
+    	"SELECT count(0) as quantInstalacoes, dataInstalacao, dayofweek(dataInstalacao) as diaDaSemana 
+    	 FROM Instalacao	WHERE week(current_date()) = week(dataInstalacao)
+		 group by dataInstalacao");
+    $sth->execute();
+    $instalacoes = $sth->fetchAll();
+    if(!$instalacoes)
+    {
+        $error = array("error" => array("message"=>"No records have been submitted yet."));
+        return $container->response->withJson($error, 404);
+    }
+    return $container->response->withJson($instalacoes, 200);
+	})->add(new Auth());
+
+
 // get instalacoes periodo
 $app->get('/instalacoes/periodo/[{dataInicial}/{dataFinal}]', function ($request, $response, $args) use ($container) {
         
@@ -189,6 +221,7 @@ $app->post('/instalacoes', function ($request, $response) use ($container)  {
 
         $sth = $container->db->prepare("
             SELECT dataInstalacao, i.IdPessoaCliente, i.IdPessoaFuncionario,
+            dataLiberacaoPorta,
             pes.nome as 'NomeCliente', pes.sobrenome as 'SobrenomeCliente',
             p.nome as 'NomeFunc', p.sobrenome as 'SobrenomeFunc', 
             c.rua, c.numero, c.complemento, b.descricao, Porta, idCaixa
