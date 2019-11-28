@@ -19,17 +19,17 @@ $app->get('/instalacoes', function ($request, $response, $args) use ($container)
 $app->get('/instalacoes/all', function ($request, $response, $args) use ($container) {
         
         $sth = $container->db->prepare(
-            "SELECT dataInstalacao, i.IdPessoaCliente, i.IdPessoaFuncionario,
-            pes.nome as 'NomeCliente', pes.sobrenome as 'SobrenomeCliente',
-            p.nome as 'NomeFunc', p.sobrenome as 'SobrenomeFunc', 
-            c.rua, c.numero, c.complemento, b.descricao, Porta, idCaixa
-            FROM Instalacao i 
-            inner join Cliente c on c.IdPessoaCliente = i.IdPessoaCliente 
-            inner join Funcionario f on f.IdPessoaFuncionario = i.IdPessoaFuncionario
-            inner join Pessoa p on p.IdPessoa = f.IdPessoaFuncionario
-            inner join Pessoa pes on pes.IdPessoa = c.IdPessoaCliente
-            inner join Bairro b on b.idBairro = c.idBairro
-            order by dataInstalacao desc"
+            "SELECT datainstalacao, i.idpessoacliente, i.idpessoafuncionario,
+            pes.nome as 'nomecliente', pes.sobrenome as 'sobrenomecliente',
+            p.nome as 'nomefunc', p.sobrenome as 'sobrenomefunc', 
+            c.rua, c.numero, c.complemento, b.descricao, porta, idcaixa
+            FROM instalacao i 
+            inner join cliente c on c.idpessoacliente = i.idpessoacliente 
+            inner join funcionario f on f.idpessoafuncionario = i.idpessoafuncionario
+            inner join pessoa p on p.Idpessoa = f.idpessoafuncionario
+            inner join pessoa pes on pes.idpessoa = c.idpessoacliente
+            inner join bairro b on b.idbairro = c.idbairro
+            order by datainstalacao desc"
         );
         $sth->execute();
         $instalacao = $sth->fetchAll();
@@ -43,8 +43,8 @@ $app->get('/instalacoes/all', function ($request, $response, $args) use ($contai
 
     // get quant instalacoes por mes
 	$app->get('/instalacoes/month', function ($request, $response, $args) use ($container) {
-    $sth = $container->db->prepare("SELECT count(0) as Instalacoes, MONTH(dataInstalacao) as mes FROM Instalacao
-									WHERE YEAR(dataInstalacao) = 2019
+    $sth = $container->db->prepare("SELECT count(0) as instalacoes, MONTH(datainstalacao) as mes FROM instalacao
+									WHERE YEAR(datainstalacao) = 2019
 									group by mes");
     $sth->execute();
     $instalacoes = $sth->fetchAll();
@@ -59,9 +59,9 @@ $app->get('/instalacoes/all', function ($request, $response, $args) use ($contai
 	// get quant instalacoes por semana
 	$app->get('/instalacoes/week', function ($request, $response, $args) use ($container) {
     $sth = $container->db->prepare(
-    	"SELECT count(0) as quantInstalacoes, dataInstalacao, dayofweek(dataInstalacao) as diaDaSemana 
-    	 FROM Instalacao	WHERE week(current_date()) = week(dataInstalacao)
-		 group by dataInstalacao");
+    	"SELECT count(0) as quantinstalacoes, datainstalacao, dayofweek(datainstalacao) as diadasemana 
+    	 FROM instalacao	WHERE week(current_date()) = week(datainstalacao)
+		 group by datainstalacao");
     $sth->execute();
     $instalacoes = $sth->fetchAll();
     if(!$instalacoes)
