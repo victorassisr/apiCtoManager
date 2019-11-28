@@ -52,8 +52,12 @@ return function (App $app) {
                 $user->tipoUser = $tipoUsuario; //Adciona usuário ao obj de resposta.
                 */
                 require('src/JWT/JWTWrapper.php');
+                // $jwt = JWTWrapper::encode([
+                //     'expiration_sec' => 3600,
+                //     'userdata' => $user
+                // ]);
+
                 $jwt = JWTWrapper::encode([
-                    'expiration_sec' => 3600,
                     'userdata' => $user
                 ]);
 
